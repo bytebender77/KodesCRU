@@ -48,6 +48,74 @@ class ApiService {
     }
   }
 
+  private async streamRequest(
+    endpoint: string,
+    data: ApiRequest,
+    onChunk: (chunk: string) => void
+  ): Promise<void> {
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API request failed: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      if (!response.body) {
+        throw new Error('Response body is null');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const json = JSON.parse(line.slice(6));
+              if (json.chunk) {
+                onChunk(json.chunk);
+              }
+            } catch (e) {
+              // Skip invalid JSON
+            }
+          }
+        }
+      }
+
+      // Process remaining buffer
+      if (buffer.startsWith('data: ')) {
+        try {
+          const json = JSON.parse(buffer.slice(6));
+          if (json.chunk) {
+            onChunk(json.chunk);
+          }
+        } catch (e) {
+          // Skip invalid JSON
+        }
+      }
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error(`Cannot connect to backend server at ${API_BASE_URL}. Please make sure the backend is running on port 8000.`);
+      }
+      throw error;
+    }
+  }
+
   async explainCode(language: string, topic: string, level: string, code?: string): Promise<string> {
     const result = await this.request<ApiResponse>('/explain', { language, topic, level, code });
     return result.response;
@@ -91,6 +159,82 @@ class ApiService {
   async getRoadmaps(level: string, topic: string): Promise<string> {
     const result = await this.request<ApiResponse>('/get_roadmaps', { level, topic });
     return result.response;
+  }
+
+  // Streaming versions
+  async streamExplainCode(
+    language: string,
+    topic: string,
+    level: string,
+    code: string | undefined,
+    onChunk: (chunk: string) => void
+  ): Promise<void> {
+    await this.streamRequest('/stream/explain', { language, topic, level, code }, onChunk);
+  }
+
+  async streamDebugCode(
+    language: string,
+    code: string,
+    topic: string | undefined,
+    onChunk: (chunk: string) => void
+  ): Promise<void> {
+    await this.streamRequest('/stream/debug', { language, code, topic }, onChunk);
+  }
+
+  async streamGenerateCode(
+    language: string,
+    topic: string,
+    level: string,
+    onChunk: (chunk: string) => void
+  ): Promise<void> {
+    await this.streamRequest('/stream/generate', { language, topic, level }, onChunk);
+  }
+
+  async streamConvertLogic(
+    logic: string,
+    language: string,
+    onChunk: (chunk: string) => void
+  ): Promise<void> {
+    await this.streamRequest('/stream/convert_logic', { logic, language }, onChunk);
+  }
+
+  async streamAnalyzeComplexity(
+    code: string,
+    onChunk: (chunk: string) => void
+  ): Promise<void> {
+    await this.streamRequest('/stream/analyze_complexity', { code }, onChunk);
+  }
+
+  async streamTraceCode(
+    code: string,
+    language: string,
+    onChunk: (chunk: string) => void
+  ): Promise<void> {
+    await this.streamRequest('/stream/trace_code', { code, language }, onChunk);
+  }
+
+  async streamGetSnippets(
+    language: string,
+    topic: string,
+    onChunk: (chunk: string) => void
+  ): Promise<void> {
+    await this.streamRequest('/stream/get_snippets', { language, snippet: topic }, onChunk);
+  }
+
+  async streamGetProjects(
+    level: string,
+    topic: string,
+    onChunk: (chunk: string) => void
+  ): Promise<void> {
+    await this.streamRequest('/stream/get_projects', { level, topic }, onChunk);
+  }
+
+  async streamGetRoadmaps(
+    level: string,
+    topic: string,
+    onChunk: (chunk: string) => void
+  ): Promise<void> {
+    await this.streamRequest('/stream/get_roadmaps', { level, topic }, onChunk);
   }
 
   async executeCode(code: string, language: string, stdin?: string): Promise<ExecuteCodeResponse> {

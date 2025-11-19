@@ -197,96 +197,118 @@ function App() {
     setResponse('');
 
     try {
-      let result = '';
+      // Handle playground separately (no streaming needed)
+      if (activeFeature === 'playground') {
+        if (!playgroundCode || !playgroundLanguage) {
+          setError('Please provide code and select a language');
+          setLoading(false);
+          return;
+        }
+        const execResult = await apiService.executeCode(
+          playgroundCode,
+          playgroundLanguage,
+          playgroundStdin
+        );
+        setExecutionResult(execResult);
+        setLoading(false);
+        return;
+      }
+
+      // Use streaming for all other features
+      let streamFunction: (onChunk: (chunk: string) => void) => Promise<void>;
       
       switch (activeFeature) {
         case 'explain':
           if ((!topic && !code) || !language || !level) {
             setError('Please provide either code or topic, along with language and level');
+            setLoading(false);
             return;
           }
-          result = await apiService.explainCode(language, topic, level, code);
+          streamFunction = (onChunk) => apiService.streamExplainCode(language, topic, level, code, onChunk);
           break;
         
         case 'debug':
           if (!code || !language) {
             setError('Please provide code and language');
+            setLoading(false);
             return;
           }
-          result = await apiService.debugCode(language, code, topic);
+          streamFunction = (onChunk) => apiService.streamDebugCode(language, code, topic, onChunk);
           break;
         
         case 'generate':
           if (!topic || !language || !level) {
             setError('Please fill in all fields');
+            setLoading(false);
             return;
           }
-          result = await apiService.generateCode(language, topic, level);
+          streamFunction = (onChunk) => apiService.streamGenerateCode(language, topic, level, onChunk);
           break;
         
         case 'convert':
           if (!logic || !language) {
             setError('Please provide logic and target language');
+            setLoading(false);
             return;
           }
-          result = await apiService.convertLogic(logic, language);
+          streamFunction = (onChunk) => apiService.streamConvertLogic(logic, language, onChunk);
           break;
         
         case 'complexity':
           if (!code) {
             setError('Please provide code to analyze');
+            setLoading(false);
             return;
           }
-          result = await apiService.analyzeComplexity(code);
+          streamFunction = (onChunk) => apiService.streamAnalyzeComplexity(code, onChunk);
           break;
         
         case 'trace':
           if (!code || !language) {
             setError('Please provide code and language');
+            setLoading(false);
             return;
           }
-          result = await apiService.traceCode(code, language);
+          streamFunction = (onChunk) => apiService.streamTraceCode(code, language, onChunk);
           break;
         
         case 'snippets':
           if (!topic || !language) {
             setError('Please provide topic and language');
+            setLoading(false);
             return;
           }
-          result = await apiService.getSnippets(language, topic);
+          streamFunction = (onChunk) => apiService.streamGetSnippets(language, topic, onChunk);
           break;
         
         case 'projects':
           if (!topic || !level) {
             setError('Please provide topic and level');
+            setLoading(false);
             return;
           }
-          result = await apiService.getProjects(level, topic);
+          streamFunction = (onChunk) => apiService.streamGetProjects(level, topic, onChunk);
           break;
         
         case 'roadmaps':
           if (!topic || !level) {
             setError('Please provide topic and level');
+            setLoading(false);
             return;
           }
-          result = await apiService.getRoadmaps(level, topic);
+          streamFunction = (onChunk) => apiService.streamGetRoadmaps(level, topic, onChunk);
           break;
         
-        case 'playground':
-          if (!playgroundCode || !playgroundLanguage) {
-            setError('Please provide code and select a language');
-            return;
-          }
-          const execResult = await apiService.executeCode(
-            playgroundCode,
-            playgroundLanguage,
-            playgroundStdin
-          );
-          setExecutionResult(execResult);
+        default:
+          setLoading(false);
           return;
       }
+
+      // Stream the response
+      await streamFunction((chunk: string) => {
+        setResponse(prev => prev + chunk);
+      });
       
-      setResponse(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -958,13 +980,13 @@ function App() {
 
                   <button
                     onClick={handleSubmit}
-                    disabled={loading}
+                    disabled={loading && activeFeature === 'playground'}
                     className="w-full bg-gradient-to-r from-indigo-600 via-emerald-600 to-cyan-600 text-white py-3 rounded-xl font-semibold text-base hover:from-indigo-700 hover:via-emerald-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-500/50 hover:shadow-emerald-500/70 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 flex-shrink-0"
                   >
-                    {loading ? (
+                    {loading && activeFeature === 'playground' ? (
                       <>
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        <span>{activeFeature === 'playground' ? 'Running...' : 'Processing...'}</span>
+                        <span>Running...</span>
                       </>
                     ) : (
                       <>
@@ -1059,18 +1081,28 @@ function App() {
                 )}
 
                 {/* Response Card (Other Features) */}
-                {activeFeature !== 'playground' && response && (
+                {activeFeature !== 'playground' && (response || loading) && (
                   <div
                     className="bg-white/10 backdrop-blur-lg rounded-2xl p-5 shadow-2xl border border-white/20 animate-in fade-in slide-in-from-bottom-4 duration-300 flex flex-col"
                     style={featureBackgroundStyle}
                   >
                     <div className="flex items-center gap-2 mb-3 flex-shrink-0">
-                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                      <h3 className="text-lg font-bold text-white">Response</h3>
+                      {loading ? (
+                        <>
+                          <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                          <h3 className="text-lg font-bold text-white">Generating...</h3>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                          <h3 className="text-lg font-bold text-white">Response</h3>
+                        </>
+                      )}
                     </div>
                     <div className="bg-slate-900/70 rounded-xl p-5 border border-white/10 custom-scrollbar markdown-content" style={{ overflowY: 'auto', maxHeight: '600px' }}>
-                      <ReactMarkdown
-                        components={{
+                      {response ? (
+                        <ReactMarkdown
+                          components={{
                           code({ inline, className, children, ...props }: any) {
                             const match = /language-(\w+)/.exec(className || '');
                             const language = match ? match[1] : '';
@@ -1148,6 +1180,11 @@ function App() {
                       >
                         {response}
                       </ReactMarkdown>
+                      ) : (
+                        <div className="text-gray-400 text-sm italic">
+                          Waiting for response...
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

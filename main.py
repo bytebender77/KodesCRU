@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import Optional
 import logging
@@ -17,7 +18,16 @@ from ai_engine import (
     get_snippets,
     get_projects,
     get_roadmaps,
-    check_llm_health
+    check_llm_health,
+    stream_explain_code,
+    stream_debug_code,
+    stream_generate_code,
+    stream_convert_logic,
+    stream_analyze_complexity,
+    stream_trace_code,
+    stream_get_snippets,
+    stream_get_projects,
+    stream_get_roadmaps
 )
 from code_executor import executor, SUPPORTED_LANGUAGES
 from websocket_handler import connection_manager
@@ -126,6 +136,88 @@ def get_roadmaps_endpoint(req: RequestModel):
 @app.post("/trace_code")
 def trace_code_endpoint(req: RequestModel):
     return {"response": trace_code(req.code or "", req.language or "python")}
+
+# Streaming endpoints
+@app.post("/stream/explain")
+async def stream_explain_endpoint(req: RequestModel):
+    """Stream explanation of code or topic"""
+    async def generate():
+        async for chunk in stream_explain_code(req.language, req.topic or "", req.level, req.code or ""):
+            yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+    
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+@app.post("/stream/debug")
+async def stream_debug_endpoint(req: RequestModel):
+    """Stream debugging analysis"""
+    async def generate():
+        async for chunk in stream_debug_code(req.language, req.code or "", req.topic or ""):
+            yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+    
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+@app.post("/stream/generate")
+async def stream_generate_endpoint(req: RequestModel):
+    """Stream code generation"""
+    async def generate():
+        async for chunk in stream_generate_code(req.language, req.topic or "", req.level or "Beginner"):
+            yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+    
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+@app.post("/stream/convert_logic")
+async def stream_convert_logic_endpoint(req: RequestModel):
+    """Stream logic to code conversion"""
+    async def generate():
+        async for chunk in stream_convert_logic(req.logic or "", req.language):
+            yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+    
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+@app.post("/stream/analyze_complexity")
+async def stream_analyze_complexity_endpoint(req: RequestModel):
+    """Stream complexity analysis"""
+    async def generate():
+        async for chunk in stream_analyze_complexity(req.code or ""):
+            yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+    
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+@app.post("/stream/trace_code")
+async def stream_trace_code_endpoint(req: RequestModel):
+    """Stream code tracing"""
+    async def generate():
+        async for chunk in stream_trace_code(req.code or "", req.language or "python"):
+            yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+    
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+@app.post("/stream/get_snippets")
+async def stream_get_snippets_endpoint(req: RequestModel):
+    """Stream code snippets"""
+    async def generate():
+        async for chunk in stream_get_snippets(req.language, req.snippet or req.topic or ""):
+            yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+    
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+@app.post("/stream/get_projects")
+async def stream_get_projects_endpoint(req: RequestModel):
+    """Stream project ideas"""
+    async def generate():
+        async for chunk in stream_get_projects(req.level or "Beginner", req.topic or ""):
+            yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+    
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+@app.post("/stream/get_roadmaps")
+async def stream_get_roadmaps_endpoint(req: RequestModel):
+    """Stream learning roadmaps"""
+    async def generate():
+        async for chunk in stream_get_roadmaps(req.level or "Beginner", req.topic or ""):
+            yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+    
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 @app.get("/health")
 def health():
