@@ -45,15 +45,21 @@ function App() {
   useEffect(() => {
     const checkBackend = async () => {
       try {
-        const response = await fetch('http://localhost:8000/health');
-        setBackendConnected(response.ok);
-      } catch {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${apiUrl}/health`);
+        if (response.ok) {
+          setBackendConnected(true);
+        } else {
+          setBackendConnected(false);
+        }
+      } catch (error) {
+        console.error('Backend connection check failed:', error);
         setBackendConnected(false);
       }
     };
     checkBackend();
-    // Check every 5 seconds
-    const interval = setInterval(checkBackend, 5000);
+    // Check every 10 seconds (reduced frequency for production)
+    const interval = setInterval(checkBackend, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -75,7 +81,8 @@ function App() {
   useEffect(() => {
     const loadSupportedLanguages = async () => {
       try {
-        const response = await fetch('http://localhost:8000/supported_languages');
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${apiUrl}/supported_languages`);
         if (response.ok) {
           const data = await response.json();
           setSupportedLanguages(data.languages || []);

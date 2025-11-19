@@ -51,13 +51,22 @@ git push origin main
 
 8. **Copy your backend URL** (e.g., `https://kodescru-backend.onrender.com`)
 
-### Step 3: Update CORS Settings
+### Step 3: Get Your Backend URL
 
-After deployment, update the `ALLOWED_ORIGINS` environment variable in Render to include your Vercel frontend URL:
+After successful deployment, Render will provide you with a URL. From your deployment logs, you can see:
 
-```
-ALLOWED_ORIGINS=https://your-frontend.vercel.app,https://your-frontend.vercel.app
-```
+**Your Backend URL**: `https://kodescruxxx.onrender.com`
+
+This is your backend API endpoint. You'll need this for the frontend configuration.
+
+### Step 4: Update CORS Settings
+
+After deploying the frontend (Step 5), update the `ALLOWED_ORIGINS` environment variable in Render to include your Vercel frontend URL:
+
+1. Go to Render Dashboard → Your Service → Environment
+2. Find `ALLOWED_ORIGINS` variable
+3. Update it to: `https://your-frontend.vercel.app` (replace with your actual Vercel URL)
+4. Save and the service will automatically redeploy
 
 ---
 
@@ -133,7 +142,13 @@ vercel env add VITE_WS_URL
 
 7. **Wait for deployment** (usually 1-2 minutes)
 
-8. **Copy your frontend URL** (e.g., `https://kodescru-frontend.vercel.app`)
+8. **Copy your frontend URL** - Vercel will show you the deployment URL:
+   - Production URL: `https://your-project-name.vercel.app`
+   - Or your custom domain if configured
+   
+   **Example**: `https://kodescru-frontend.vercel.app`
+
+9. **Important**: After getting your frontend URL, go back to Render and update `ALLOWED_ORIGINS` to include your Vercel URL
 
 ---
 
