@@ -1,10 +1,12 @@
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from typing import Optional
 import logging
 import json
 import os
+from pathlib import Path
 from ai_engine import (
     explain_code,
     debug_code,
@@ -24,6 +26,13 @@ from room_manager import room_manager
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+
+# Serve static images if directory exists
+BASE_DIR = Path(__file__).parent
+IMAGES_DIR = BASE_DIR / "images"
+
+if IMAGES_DIR.exists():
+    app.mount("/images", StaticFiles(directory=IMAGES_DIR), name="images")
 
 # Add CORS middleware
 # Get allowed origins from environment variable or use defaults

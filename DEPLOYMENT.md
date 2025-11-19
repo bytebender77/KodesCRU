@@ -120,6 +120,9 @@ vercel env add VITE_API_URL
 
 vercel env add VITE_WS_URL
 # Enter: wss://your-backend.onrender.com
+
+vercel env add VITE_ASSET_BASE_URL
+# Enter: https://your-backend.onrender.com
 ```
 
 #### Option B: Using Vercel Dashboard
@@ -137,6 +140,7 @@ vercel env add VITE_WS_URL
 5. **Add Environment Variables:**
    - `VITE_API_URL` = `https://your-backend.onrender.com`
    - `VITE_WS_URL` = `wss://your-backend.onrender.com`
+   - `VITE_ASSET_BASE_URL` = `https://your-backend.onrender.com`
 
 6. **Click "Deploy"**
 
@@ -208,6 +212,7 @@ If you need to change backend URL:
 |----------|-------------|---------|
 | `VITE_API_URL` | Backend API URL | `https://backend.onrender.com` |
 | `VITE_WS_URL` | WebSocket URL | `wss://backend.onrender.com` |
+| `VITE_ASSET_BASE_URL` | Base URL for background images | `https://backend.onrender.com` |
 
 ---
 

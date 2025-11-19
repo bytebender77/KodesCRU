@@ -213,6 +213,8 @@ Create `frontend/.env`:
 
 ```env
 VITE_API_URL=http://localhost:8000
+VITE_WS_URL=ws://localhost:8000
+VITE_ASSET_BASE_URL=http://localhost:8000
 ```
 
 ---
