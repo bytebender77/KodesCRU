@@ -27,17 +27,25 @@ app = FastAPI()
 
 # Add CORS middleware
 # Get allowed origins from environment variable or use defaults
-ALLOWED_ORIGINS = os.getenv(
+ALLOWED_ORIGINS_STR = os.getenv(
     "ALLOWED_ORIGINS",
     "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173"
-).split(",")
+)
+# Clean up origins: remove whitespace and filter empty strings
+ALLOWED_ORIGINS = [origin.strip() for origin in ALLOWED_ORIGINS_STR.split(",") if origin.strip()]
+
+# Log allowed origins for debugging (don't log in production)
+if os.getenv("DEBUG", "False").lower() == "true":
+    logger.info(f"Allowed CORS origins: {ALLOWED_ORIGINS}")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
 class RequestModel(BaseModel):
