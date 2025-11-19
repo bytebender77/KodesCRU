@@ -232,6 +232,24 @@ If you need to change backend URL:
 - Ensure all dependencies are in `package.json`
 - Verify Node.js version compatibility
 
+**SSL Certificate Error (ERR_CERT_AUTHORITY_INVALID):**
+- This usually happens on Vercel preview deployments
+- **Solution 1**: Use the production domain (e.g., `your-app.vercel.app`) instead of preview URLs
+- **Solution 2**: If using a custom domain, ensure it's properly configured in Vercel:
+  1. Go to Vercel Dashboard → Your Project → Settings → Domains
+  2. Add your custom domain
+  3. Follow DNS configuration instructions
+  4. Wait for SSL certificate to be issued (usually 1-5 minutes)
+- **Solution 3**: Clear browser cache and cookies
+- **Solution 4**: Ensure all API calls use HTTPS (not HTTP)
+- **Solution 5**: Check that `VITE_API_URL` and `VITE_WS_URL` use `https://` and `wss://` respectively
+
+**Favicon not showing:**
+- Ensure `favicon.svg` exists in `frontend/public/` directory
+- Clear browser cache (Ctrl+Shift+R or Cmd+Shift+R)
+- Check browser console for 404 errors on favicon
+- Verify the favicon path in `index.html` matches the file location
+
 ---
 
 ## 📝 Notes

@@ -7,6 +7,17 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
+  build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'monaco-vendor': ['@monaco-editor/react', 'monaco-editor'],
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     proxy: {
