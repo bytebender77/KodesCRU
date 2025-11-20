@@ -37,15 +37,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# Serve static images if directory exists
-BASE_DIR = Path(__file__).parent
-IMAGES_DIR = BASE_DIR / "images"
-
-if IMAGES_DIR.exists():
-    app.mount("/images", StaticFiles(directory=IMAGES_DIR), name="images")
-
-# Add CORS middleware
-# Get allowed origins from environment variable or use defaults
+# Get allowed origins from environment variable or use defaults (needed before CORS middleware)
 ALLOWED_ORIGINS_STR = os.getenv(
     "ALLOWED_ORIGINS",
     "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173"
@@ -57,6 +49,7 @@ ALLOWED_ORIGINS = [origin.strip() for origin in ALLOWED_ORIGINS_STR.split(",") i
 if os.getenv("DEBUG", "False").lower() == "true":
     logger.info(f"Allowed CORS origins: {ALLOWED_ORIGINS}")
 
+# Add CORS middleware (must be before static files)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -66,6 +59,13 @@ app.add_middleware(
     expose_headers=["*"],
     max_age=3600,
 )
+
+# Serve static images if directory exists
+BASE_DIR = Path(__file__).parent
+IMAGES_DIR = BASE_DIR / "images"
+
+if IMAGES_DIR.exists():
+    app.mount("/images", StaticFiles(directory=IMAGES_DIR), name="images")
 
 class RequestModel(BaseModel):
     language: str = None
@@ -239,8 +239,14 @@ async def stream_get_roadmaps_endpoint(req: RequestModel):
 
 @app.get("/health")
 def health():
+    """Health check endpoint - also used to wake up backend from cold start"""
     health_status = check_llm_health()
     return {"status": "ok", "llm": health_status}
+
+@app.get("/wake")
+def wake():
+    """Lightweight wake-up endpoint to prevent cold starts - faster than /health"""
+    return {"status": "awake", "message": "Backend is ready"}
 
 @app.post("/execute_code", response_model=ExecuteCodeResponse)
 async def execute_code_endpoint(request: ExecuteCodeRequest):

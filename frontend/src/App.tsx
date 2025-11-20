@@ -76,6 +76,8 @@ function App() {
     collaborate: buildImageUrl('Generated Image November 19, 2025 - 1_33PM (1).png'),
   }), [buildImageUrl]);
 
+  const [imageLoadErrors, setImageLoadErrors] = useState<Set<string>>(new Set());
+
   const featureBackgroundStyle = useMemo(() => {
     // Don't apply background to collaborate feature
     if (activeFeature === 'collaborate') {
@@ -87,39 +89,109 @@ function App() {
       return {};
     }
 
+    // If image failed to load, use fallback gradient
+    if (imageLoadErrors.has(imageUrl)) {
+      return {
+        background: 'linear-gradient(135deg, rgba(12,20,39,0.95), rgba(11,15,25,0.95))',
+      };
+    }
+
     return {
       backgroundImage: `linear-gradient(135deg, rgba(12,20,39,0.78), rgba(11,15,25,0.72)), url(${imageUrl})`,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
     };
-  }, [featureBackgrounds, activeFeature]);
+  }, [featureBackgrounds, activeFeature, imageLoadErrors]);
+
+  // Handle image load errors
+  useEffect(() => {
+    const handleImageError = (imageUrl: string) => {
+      setImageLoadErrors(prev => new Set(prev).add(imageUrl));
+    };
+
+    // Check if current image is loaded
+    if (activeFeature !== 'collaborate') {
+      const imageUrl = featureBackgrounds[activeFeature];
+      if (imageUrl) {
+        const img = new Image();
+        img.onerror = () => handleImageError(imageUrl);
+        img.onload = () => {
+          // Image loaded successfully, remove from errors if it was there
+          setImageLoadErrors(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(imageUrl);
+            return newSet;
+          });
+        };
+        img.src = imageUrl;
+      }
+    }
+  }, [activeFeature, featureBackgrounds]);
 
   // Stable snow animation props to prevent re-initialization
   const snowSpeed = useMemo(() => [0.4, 1.2] as [number, number], []);
   const snowWind = useMemo(() => [-0.2, 0.6] as [number, number], []);
   const snowRadius = useMemo(() => [1.2, 3.6] as [number, number], []);
 
-  // Check backend connection on mount
+  // Check backend connection on mount and wake up backend (prevent cold start)
   useEffect(() => {
-    const checkBackend = async () => {
+    const wakeBackend = async () => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-        const response = await fetch(`${apiUrl}/health`);
-        if (response.ok) {
+        // Use lightweight wake endpoint first to wake up backend quickly
+        const wakeResponse = await fetch(`${apiUrl}/wake`, {
+          method: 'GET',
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+        });
+        if (wakeResponse.ok) {
           setBackendConnected(true);
-        } else {
-          setBackendConnected(false);
         }
       } catch (error) {
-        console.error('Backend connection check failed:', error);
-        setBackendConnected(false);
+        // If wake fails, try health check
+        try {
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+          const healthResponse = await fetch(`${apiUrl}/health`, {
+            method: 'GET',
+            headers: {
+              'Cache-Control': 'no-cache',
+            },
+          });
+          if (healthResponse.ok) {
+            setBackendConnected(true);
+          } else {
+            setBackendConnected(false);
+          }
+        } catch (healthError) {
+          console.error('Backend connection check failed:', healthError);
+          setBackendConnected(false);
+        }
       }
     };
-    checkBackend();
-    const interval = setInterval(checkBackend, 10000);
+    
+    // Immediate wake-up call on mount to prevent cold start delay
+    wakeBackend();
+    
+    // Periodic wake-up calls to keep backend warm (every 2 minutes)
+    const interval = setInterval(wakeBackend, 120000);
     return () => clearInterval(interval);
   }, []);
+  
+  // Preload background images to prevent loading delays
+  useEffect(() => {
+    const preloadImages = () => {
+      Object.values(featureBackgrounds).forEach((imageUrl) => {
+        const img = new Image();
+        img.src = imageUrl;
+        img.onerror = () => {
+          console.warn(`Failed to load background image: ${imageUrl}`);
+        };
+      });
+    };
+    preloadImages();
+  }, [featureBackgrounds]);
 
   const features = [
     { id: 'explain' as Feature, icon: Code2, label: 'Explain Code', color: 'blue' },
