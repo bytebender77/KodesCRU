@@ -142,6 +142,8 @@ def trace_code_endpoint(req: RequestModel):
 async def stream_explain_endpoint(req: RequestModel):
     """Stream explanation of code or topic"""
     async def generate():
+        # Send immediate response to show request was received
+        yield f"data: {json.dumps({'chunk': ''})}\n\n"
         async for chunk in stream_explain_code(req.language, req.topic or "", req.level, req.code or ""):
             yield f"data: {json.dumps({'chunk': chunk})}\n\n"
     
@@ -151,6 +153,8 @@ async def stream_explain_endpoint(req: RequestModel):
 async def stream_debug_endpoint(req: RequestModel):
     """Stream debugging analysis"""
     async def generate():
+        # Send immediate response to show request was received
+        yield f"data: {json.dumps({'chunk': ''})}\n\n"
         async for chunk in stream_debug_code(req.language, req.code or "", req.topic or ""):
             yield f"data: {json.dumps({'chunk': chunk})}\n\n"
     
@@ -160,6 +164,8 @@ async def stream_debug_endpoint(req: RequestModel):
 async def stream_generate_endpoint(req: RequestModel):
     """Stream code generation"""
     async def generate():
+        # Send immediate response to show request was received
+        yield f"data: {json.dumps({'chunk': ''})}\n\n"
         async for chunk in stream_generate_code(req.language, req.topic or "", req.level or "Beginner"):
             yield f"data: {json.dumps({'chunk': chunk})}\n\n"
     
@@ -169,6 +175,8 @@ async def stream_generate_endpoint(req: RequestModel):
 async def stream_convert_logic_endpoint(req: RequestModel):
     """Stream logic to code conversion"""
     async def generate():
+        # Send immediate response to show request was received
+        yield f"data: {json.dumps({'chunk': ''})}\n\n"
         async for chunk in stream_convert_logic(req.logic or "", req.language):
             yield f"data: {json.dumps({'chunk': chunk})}\n\n"
     
@@ -178,6 +186,8 @@ async def stream_convert_logic_endpoint(req: RequestModel):
 async def stream_analyze_complexity_endpoint(req: RequestModel):
     """Stream complexity analysis"""
     async def generate():
+        # Send immediate response to show request was received
+        yield f"data: {json.dumps({'chunk': ''})}\n\n"
         async for chunk in stream_analyze_complexity(req.code or ""):
             yield f"data: {json.dumps({'chunk': chunk})}\n\n"
     
@@ -187,6 +197,8 @@ async def stream_analyze_complexity_endpoint(req: RequestModel):
 async def stream_trace_code_endpoint(req: RequestModel):
     """Stream code tracing"""
     async def generate():
+        # Send immediate response to show request was received
+        yield f"data: {json.dumps({'chunk': ''})}\n\n"
         async for chunk in stream_trace_code(req.code or "", req.language or "python"):
             yield f"data: {json.dumps({'chunk': chunk})}\n\n"
     
@@ -196,6 +208,8 @@ async def stream_trace_code_endpoint(req: RequestModel):
 async def stream_get_snippets_endpoint(req: RequestModel):
     """Stream code snippets"""
     async def generate():
+        # Send immediate response to show request was received
+        yield f"data: {json.dumps({'chunk': ''})}\n\n"
         async for chunk in stream_get_snippets(req.language, req.snippet or req.topic or ""):
             yield f"data: {json.dumps({'chunk': chunk})}\n\n"
     
@@ -205,6 +219,8 @@ async def stream_get_snippets_endpoint(req: RequestModel):
 async def stream_get_projects_endpoint(req: RequestModel):
     """Stream project ideas"""
     async def generate():
+        # Send immediate response to show request was received
+        yield f"data: {json.dumps({'chunk': ''})}\n\n"
         async for chunk in stream_get_projects(req.level or "Beginner", req.topic or ""):
             yield f"data: {json.dumps({'chunk': chunk})}\n\n"
     
@@ -214,6 +230,8 @@ async def stream_get_projects_endpoint(req: RequestModel):
 async def stream_get_roadmaps_endpoint(req: RequestModel):
     """Stream learning roadmaps"""
     async def generate():
+        # Send immediate response to show request was received
+        yield f"data: {json.dumps({'chunk': ''})}\n\n"
         async for chunk in stream_get_roadmaps(req.level or "Beginner", req.topic or ""):
             yield f"data: {json.dumps({'chunk': chunk})}\n\n"
     

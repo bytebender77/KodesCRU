@@ -95,6 +95,11 @@ function App() {
     };
   }, [featureBackgrounds, activeFeature]);
 
+  // Stable snow animation props to prevent re-initialization
+  const snowSpeed = useMemo(() => [0.4, 1.2] as [number, number], []);
+  const snowWind = useMemo(() => [-0.2, 0.6] as [number, number], []);
+  const snowRadius = useMemo(() => [1.2, 3.6] as [number, number], []);
+
   // Check backend connection on mount
   useEffect(() => {
     const checkBackend = async () => {
@@ -304,7 +309,7 @@ function App() {
           return;
       }
 
-      // Stream the response
+      // Stream the response - backend sends immediate empty chunk, then real content
       await streamFunction((chunk: string) => {
         setResponse(prev => prev + chunk);
       });
@@ -775,9 +780,9 @@ function App() {
         <Snowfall
           snowflakeCount={220}
           color="#e0f2ff"
-          speed={[0.4, 1.2]}
-          wind={[-0.2, 0.6]}
-          radius={[1.2, 3.6]}
+          speed={snowSpeed}
+          wind={snowWind}
+          radius={snowRadius}
           style={{
             position: 'absolute',
             top: 0,
@@ -882,9 +887,9 @@ function App() {
       <Snowfall
         snowflakeCount={160}
         color="#e0f2ff"
-        speed={[0.4, 1.2]}
-        wind={[-0.2, 0.6]}
-        radius={[1.2, 3.6]}
+        speed={snowSpeed}
+        wind={snowWind}
+        radius={snowRadius}
         style={{
           position: 'absolute',
           top: 0,

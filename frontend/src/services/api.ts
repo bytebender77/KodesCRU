@@ -74,6 +74,7 @@ class ApiService {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let hasReceivedData = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -88,6 +89,7 @@ class ApiService {
             try {
               const json = JSON.parse(line.slice(6));
               if (json.chunk) {
+                hasReceivedData = true;
                 onChunk(json.chunk);
               }
             } catch (e) {
@@ -102,11 +104,18 @@ class ApiService {
         try {
           const json = JSON.parse(buffer.slice(6));
           if (json.chunk) {
+            hasReceivedData = true;
             onChunk(json.chunk);
           }
         } catch (e) {
           // Skip invalid JSON
         }
+      }
+
+      // If no data was received, the backend might be slow to start
+      if (!hasReceivedData) {
+        // This shouldn't happen, but handle gracefully
+        onChunk('\n\n⚠️ No response received. Please try again.');
       }
     } catch (error) {
       if (error instanceof TypeError && error.message.includes('fetch')) {

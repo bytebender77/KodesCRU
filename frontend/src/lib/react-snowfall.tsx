@@ -27,6 +27,17 @@ const Snowfall = ({
   style = {},
 }: SnowfallProps) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const flakesRef = useRef<Flake[]>([]);
+  const speedRef = useRef<[number, number]>(speed);
+  const windRef = useRef<[number, number]>(wind);
+  const radiusRef = useRef<[number, number]>(radius);
+  const colorRef = useRef<string>(color);
+
+  // Update refs when props change, but don't regenerate flakes
+  speedRef.current = speed;
+  windRef.current = wind;
+  radiusRef.current = radius;
+  colorRef.current = color;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -34,13 +45,16 @@ const Snowfall = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const flakes: Flake[] = Array.from({ length: snowflakeCount }, () => ({
-      x: Math.random() * window.innerWidth,
-      y: Math.random() * window.innerHeight,
-      r: Math.random() * (radius[1] - radius[0]) + radius[0],
-      vy: Math.random() * (speed[1] - speed[0]) + speed[0],
-      vx: Math.random() * (wind[1] - wind[0]) + wind[0],
-    }));
+    // Only initialize flakes if they don't exist or count changed
+    if (flakesRef.current.length !== snowflakeCount) {
+      flakesRef.current = Array.from({ length: snowflakeCount }, () => ({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        r: Math.random() * (radiusRef.current[1] - radiusRef.current[0]) + radiusRef.current[0],
+        vy: Math.random() * (speedRef.current[1] - speedRef.current[0]) + speedRef.current[0],
+        vx: Math.random() * (windRef.current[1] - windRef.current[0]) + windRef.current[0],
+      }));
+    }
 
     const resize = () => {
       canvas.width = window.innerWidth;
@@ -53,8 +67,8 @@ const Snowfall = ({
     let animationId: number;
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = color;
-      flakes.forEach(flake => {
+      ctx.fillStyle = colorRef.current;
+      flakesRef.current.forEach(flake => {
         ctx.beginPath();
         ctx.arc(flake.x, flake.y, flake.r, 0, Math.PI * 2);
         ctx.fill();
@@ -65,6 +79,8 @@ const Snowfall = ({
         if (flake.y > canvas.height) {
           flake.y = -flake.r;
           flake.x = Math.random() * canvas.width;
+          // Maintain consistent speed when resetting
+          flake.vy = Math.random() * (speedRef.current[1] - speedRef.current[0]) + speedRef.current[0];
         }
         if (flake.x > canvas.width) {
           flake.x = 0;
@@ -82,7 +98,7 @@ const Snowfall = ({
       cancelAnimationFrame(animationId);
       window.removeEventListener('resize', resize);
     };
-  }, [snowflakeCount, color, speed, wind, radius]);
+  }, [snowflakeCount]); // Only depend on snowflakeCount
 
   return (
     <canvas
